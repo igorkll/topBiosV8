@@ -90,8 +90,8 @@
                 может принять nil
 ]]
 
-local _checkArg, str_string, str_nil, str_initlua, str_kernel, str_lua, str_seturlboot, str_lifeurlboot, str_sbp, str_sbf, str_empty, str_lifeboot, str_openOSonline, str_defaultSettings, str_settings, str_biosname, str_exit, proxy, list, invoke, TRUE =
-       checkArg, "string", "nil", "init.lua", "boot/kernel/", "Lua Shell", "Set Url Boot", "Life Url Boot", "Select Boot Priority", "Select Boot Fs", "", "Life Boot", "https://raw.githubusercontent.com/igorkll/microBios/main/webapps/openOSonline.lua", "{u='',e=true,k=true,j=true}", "Settings", "Top Bios V8", "exit", component.proxy, component.list, component.invoke, true
+local _checkArg, str_string, str_nil, str_initlua, str_kernel, str_lua, str_seturlboot, str_lifeurlboot, str_sbp, str_sbf, str_empty, str_lifeboot, str_openOSonline, str_updateUrl, str_defaultSettings, str_settings, str_biosname, str_exit, proxy, list, invoke, TRUE =
+       checkArg, "string", "nil", "init.lua", "boot/kernel/", "Lua Shell", "Set Url Boot", "Life Url Boot", "Select Boot Priority", "Select Boot Fs", "", "Life Boot", "https://raw.githubusercontent.com/igorkll/topBiosV8/main/openOSonline.lua", "https://raw.githubusercontent.com/igorkll/topBiosV8/main/topBiosV8.bin", "{u='',e=true,k=true,j=true,f=false}", "Settings", "Top Bios V8", "exit", component.proxy, component.list, component.invoke, true
 
 local gpu, eeprom, internet, _computer, _pcall, resX, resY, --не забуть запитую
 screen, eeprom_data, selected1, empty, event, code, str, char, err,
@@ -129,7 +129,7 @@ end, function(wait)
 end, function ()
     str = "{"
     for k, v in pairs(eeprom_data) do
-        if tostring(v) == "string" then
+        if type(v) == "string" then
             str = str .. k .. "='" .. v .. "',"
         else
             str = str .. k .. "=" .. tostring(v) .. ","
@@ -387,7 +387,7 @@ function tryBoot(laddr, lpath) --is local
 
     str = boot(laddr, lpath)
     if str then
-        splash("boot error (" .. laddr:sub(1, 4) .. ", " .. lpath .. "): " .. str, 1)
+        splash("error-boot (" .. laddr:sub(1, 4) .. ", " .. lpath .. "): " .. str, 1)
     end
 end
 
@@ -413,14 +413,14 @@ if eeprom_data.k then
 end
 
 ::retry::
-if gpu and rebootmode ~= bm_fast then
+if gpu and rebootmode ~= bm_fast and not eeprom_data.f then
     splash"press ALT to open the bios menu"
 
     selected1 = F
     if rebootmode == bm_bios then
         selected1 = 1
     else
-        for i = 0, 9 do
+        for i = 0, 5 do
             pullSignal(.1)
             if event == "key_down" and code == 56 then
                 selected1 = 1
@@ -479,6 +479,7 @@ if gpu and rebootmode ~= bm_fast then
                     {"beep on start: " .. tostring(eeprom_data.k),
                     "allow boot auto-assignments: " .. tostring(eeprom_data.e),
                     "allow set urlboot by auto-assignments: " .. tostring(eeprom_data.j),
+                    "fastboot: " .. tostring(eeprom_data.f),
                     str_exit}, selected1)
                 if selected1 == 1 then
                     eeprom_data.k = not eeprom_data.k
@@ -487,6 +488,8 @@ if gpu and rebootmode ~= bm_fast then
                 elseif selected1 == 3 then
                     eeprom_data.j = not eeprom_data.j
                 elseif selected1 == 4 then
+                    eeprom_data.f = not eeprom_data.f
+                elseif selected1 == 5 then
                     saveWithSplash()
                     break
                 end
@@ -497,8 +500,6 @@ if gpu and rebootmode ~= bm_fast then
         end
     end
 end
-
-::retryBoot::
 
 if eeprom_data.a and eeprom_data.p and proxy(eeprom_data.a) and eeprom_data.b then
     tryBoot(eeprom_data.a, eeprom_data.p)
@@ -529,8 +530,7 @@ else
     else
         splash"no suitable boot option"
     end
-    pullSignal(0.2)
-    goto retryBoot
+    pullSignal(0.5)
 end
 
 goto retry
