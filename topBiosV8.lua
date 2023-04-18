@@ -430,7 +430,7 @@ if gpu and rebootmode ~= bm_fast and not eeprom_data.f then
     end
 
     while selected1 do
-        selected1 = menu(str_biosname, {str_sbp, str_sbf, str_lifeboot, str_lifeurlboot, str_seturlboot, "Shutdown", "Reset", str_lua, str_settings, str_exit}, selected1)
+        selected1 = menu(str_biosname, {str_sbp, str_sbf, str_lifeboot, "Internet Utiles", "Shutdown", "Reset", str_lua, str_settings, str_exit}, selected1)
 
         if selected1 == 1 then
             eeprom_data.b = menu(str_sbp, {"Url", "Fs"}, eeprom_data.b and 2 or 1) == 2
@@ -445,17 +445,33 @@ if gpu and rebootmode ~= bm_fast and not eeprom_data.f then
             selected1, eeprom_data.a, eeprom_data.p = 3, old_laddr, old_lpath
             if not tmp1 then tryBoot(str, err) end
         elseif selected1 == 4 then
-            tryUrlBoot(input(str_lifeurlboot))
+            selected1 = 1
+            while 1 do
+                selected1 = menu("Internet Utiles", {str_seturlboot, str_lifeurlboot, "set openOSonline at urlboot", "run openOSonline", "run saved url", str_exit}, selected1)
+                if selected1 == 1 then
+                    eeprom_data.u = input(str_seturlboot, eeprom_data.u)
+                    saveWithSplash()
+                elseif selected1 == 2 then
+                    tryUrlBoot(input(str_lifeurlboot))
+                elseif selected1 == 3 then
+                    eeprom_data.u = str_openOSonline
+                    saveWithSplash()
+                elseif selected1 == 4 then
+                    tryUrlBoot(str_openOSonline)
+                elseif selected1 == 5 then
+                    tryUrlBoot(eeprom_data.u)
+                elseif selected1 == 6 then
+                    break
+                end                
+            end
+            selected1 = 4
         elseif selected1 == 5 then
-            eeprom_data.u = input(str_seturlboot, eeprom_data.u)
-            saveWithSplash()
-        elseif selected1 == 6 then
             shutdown()
-        elseif selected1 == 7 then
+        elseif selected1 == 6 then
             splash"Resetting"
             eeprom.setData(str_defaultSettings)
             shutdown(1)
-        elseif selected1 == 8 then
+        elseif selected1 == 7 then
             haddr = F
             while 1 do
                 haddr = input(str_lua, haddr)
@@ -472,7 +488,7 @@ if gpu and rebootmode ~= bm_fast and not eeprom_data.f then
                     end
                 end
             end
-        elseif selected1 == 9 then
+        elseif selected1 == 8 then
             selected1 = 1
             while 1 do
                 selected1 = menu(str_settings,
@@ -495,7 +511,7 @@ if gpu and rebootmode ~= bm_fast and not eeprom_data.f then
                 end
             end
             selected1 = 9
-        elseif selected1 == 10 then
+        elseif selected1 == 9 then
             break
         end
     end
