@@ -93,15 +93,12 @@
 local _checkArg, str_string, str_nil, str_initlua, str_kernel, str_lua, str_seturlboot, str_lifeurlboot, str_sbp, str_sbf, str_empty, str_lifeboot, str_openOSonline, str_updateUrl, str_defaultSettings, str_settings, str_biosname, str_exit, str_nointernetcard, proxy, list, invoke, TRUE =
        checkArg, "string", "nil", "init.lua", "boot/kernel/", "Lua Shell", "Set Url Boot", "Life Url Boot", "Select Boot Priority", "Select Boot Fs", "", "Life Boot", "https://raw.githubusercontent.com/igorkll/topBiosV8/main/openOSonline.lua", "https://raw.githubusercontent.com/igorkll/topBiosV8/main/topBiosV8.bin", "{u='',e=true,k=true,j=true,f=false}", "Settings", "Top Bios V8", "exit", "no internet-card, urlboot is not available", component.proxy, component.list, component.invoke, true
 
-local gpu, eeprom, internet, _computer, _pcall, resX, resY, --не забуть запитую
+local eeprom, _computer, _pcall, resX, resY, --не забуть запитую
 screen, eeprom_data, selected1, empty, event, code, str, char, err,
 tryUrlBoot, saveWithSplash, reverseColor, setBackground, setForeground, hpath, haddr, old_laddr, old_lpath,
-tryBoot, gIsPal, col, isPal, tmp1
+tryBoot, gIsPal, col, isPal, tmp1, setPaletteColor, internet, gpu, boot_gpu, boot_eeprom
 =
-list"scr"() and proxy(list"gp"() or str_empty),
-proxy(list"eep"() or str_empty),
-proxy(list"int"() or str_empty),
-computer, pcall, 50, 16
+proxy(list"eep"() or str_empty), computer, pcall, 50, 16
 
 ::retry2::
 if not pcall(function()
@@ -118,7 +115,7 @@ function reverseColor()
     gpu.setForeground(col, isPal)
 end
 
-local clear, drawStr, pullSignal, save, beforeBoot, setColor, rebootmode, bm_fast, bm_bios, boot_gpu, boot_eeprom, shutdown = function()
+local clear, drawStr, pullSignal, save, beforeBoot, setColor, refresh, rebootmode, bm_fast, bm_bios, shutdown = function()
     gpu.fill(1, 1, resX, resY, " ")
 end, function(str, posY, invert)
     if invert then reverseColor() end
@@ -155,29 +152,34 @@ end, function(num)
         setBackground(-1)
         setForeground(0)
     end
-end,
-eeprom.getLabel(), "__fast", "__bios", gpu and gpu.address, eeprom.address, _computer.shutdown
-eeprom.setLabel(str_biosname)
-
-if gpu then
-    screen, setBackground, setForeground = list"scr"(), gpu.setBackground, gpu.setForeground
+end, function ()
+    gpu = proxy(list"gp"() or "")
+    if gpu then
+        screen, setBackground, setForeground, setPaletteColor =
+        list"scr"(), gpu.setBackground, gpu.setForeground, gpu.setPaletteColor
+        
+        gpu.bind(screen)
     
-    gpu.bind(screen)
-
-    gpu.setDepth(1) --reset pallete
-    gpu.setDepth(math.min(gpu.maxDepth(), 4))
-    if gpu.getDepth() > 3 then
-        --4 depth
-        gpu.setPaletteColor(0, 0x000000)
-        gpu.setPaletteColor(1, 0xffffff)
-        gpu.setPaletteColor(2, 0x888888)
-        gIsPal = 1
+        gpu.setDepth(1) --reset pallete
+        gpu.setDepth(math.min(gpu.maxDepth(), 4))
+        
+        if gpu.getDepth() > 3 then
+            --4 depth
+            setPaletteColor(0, eeprom_data.w and 0xffffff or 0x000000)
+            setPaletteColor(1, eeprom_data.w and 0x000000 or 0xffffff)
+            setPaletteColor(2, 0x888888)
+            gIsPal = 1
+        end
+    
+        gpu.setResolution(resX, resY)
+    
+        invoke(screen, "turnOn")
     end
+end,
+eeprom.getLabel(), "__fast", "__bios", _computer.shutdown
 
-    gpu.setResolution(resX, resY)
-
-    invoke(screen, "turnOn")
-end
+eeprom.setLabel(str_biosname)
+refresh()
 
 ---------------- boot standart "LGC 2023-A"
 
@@ -241,7 +243,7 @@ local menu, splash, input, boot, urlboot, bootmenu = function(title, strs, curre
     ::LOOP::
         setColor(1)
         for i, str in ipairs(strs) do
-            drawStr((" "):rep(40), i + 3, i == current)
+            drawStr((" "):rep(46), i + 3, i == current)
             drawStr(str, i + 3, i == current)
         end
 
@@ -396,7 +398,7 @@ end
 
 function tryUrlBoot(url) --is local
     if not internet then splash(str_nointernetcard, 1) return end
-    splash("url booting (" .. url .. ")")
+    splash("url booting")
 
     str = urlboot(url)
     if str then
@@ -435,7 +437,8 @@ if gpu and rebootmode ~= bm_fast and not eeprom_data.f then
         selected1 = menu(str_biosname, {str_sbp, str_sbf, str_lifeboot, "Internet Utiles", "Shutdown", "Reset", str_lua, str_settings, str_exit}, selected1)
 
         if selected1 == 1 then
-            eeprom_data.b = menu(str_sbp, {"Url", "Fs"}, eeprom_data.b and 2 or 1) == 2
+            --если b - true, то выставленный url приоритетние
+            eeprom_data.b = menu(str_sbp, {"Fs", "Url"}, eeprom_data.b and 2 or 1) == 2
             saveWithSplash()
         elseif selected1 == 2 then
             bootmenu()
@@ -522,13 +525,13 @@ end
 
 ::retryBoot::
 if eeprom_data.a and eeprom_data.p and proxy(eeprom_data.a) and eeprom_data.b then
-    tryBoot(eeprom_data.a, eeprom_data.p)
+    tryUrlBoot(eeprom_data.u)
 elseif eeprom_data.u ~= str_empty and internet and eeprom_data.b then
-    tryUrlBoot(eeprom_data.u)
-elseif eeprom_data.u ~= str_empty and internet then
-    tryUrlBoot(eeprom_data.u)
-elseif eeprom_data.a and eeprom_data.p and proxy(eeprom_data.a) then
     tryBoot(eeprom_data.a, eeprom_data.p)
+elseif eeprom_data.u ~= str_empty and internet then
+    tryBoot(eeprom_data.a, eeprom_data.p)
+elseif eeprom_data.a and eeprom_data.p and proxy(eeprom_data.a) then
+    tryUrlBoot(eeprom_data.u)
 end
 
 if eeprom_data.e then
