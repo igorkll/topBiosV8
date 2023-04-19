@@ -122,7 +122,7 @@ local clear, drawStr, pullSignal, save, beforeBoot, setColor, rebootmode, bm_fas
     gpu.fill(1, 1, resX, resY, " ")
 end, function(str, posY, invert)
     if invert then reverseColor() end
-    gpu.set(math.floor((resX / 2 - #str / 2) + .5), posY, str)
+    gpu.set(math.floor(resX / 2 - #str / 2) + 1, posY, str)
     if invert then reverseColor() end
 end, function(wait)
     event, empty, char, code = _computer.pullSignal(wait)
@@ -241,6 +241,7 @@ local menu, splash, input, boot, urlboot, bootmenu = function(title, strs, curre
     ::LOOP::
         setColor(1)
         for i, str in ipairs(strs) do
+            drawStr((" "):rep(40), i + 3, i == current)
             drawStr(str, i + 3, i == current)
         end
 
@@ -383,7 +384,6 @@ function bootmenu() --is local
 end
 
 function tryBoot(laddr, lpath) --is local
-    if not internet then splash(str_nointernetcard) return end
     err = " (" .. laddr:sub(1, 4) .. ", " .. lpath .. ") "
     splash("booting" .. err)
     
@@ -395,6 +395,7 @@ function tryBoot(laddr, lpath) --is local
 end
 
 function tryUrlBoot(url) --is local
+    if not internet then splash(str_nointernetcard, 1) return end
     splash("url booting (" .. url .. ")")
 
     str = urlboot(url)
@@ -448,7 +449,7 @@ if gpu and rebootmode ~= bm_fast and not eeprom_data.f then
             selected1, eeprom_data.a, eeprom_data.p = 3, old_laddr, old_lpath
             if not tmp1 then tryBoot(str, err) end
         elseif selected1 == 4 then
-            if not internet then splash(str_nointernetcard) end --но вы всеравно сможете изменить настройки
+            if not internet then splash(str_nointernetcard, 1) end --но вы всеравно сможете изменить настройки
             selected1 = 1
             while 1 do
                 selected1 = menu("Internet Utiles", {str_seturlboot, str_lifeurlboot, "set openOSonline at urlboot", "run openOSonline", "run saved url", str_exit}, selected1)
@@ -514,7 +515,7 @@ if gpu and rebootmode ~= bm_fast and not eeprom_data.f then
                     break
                 end
             end
-            selected1 = 9
+            selected1 = 8
         elseif selected1 == 9 then
             break
         end
