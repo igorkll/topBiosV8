@@ -114,8 +114,8 @@ function refresh()
 
         if gpu.getDepth() > 3 then
             --4 depth
-            setPaletteColor(0, eeprom_data.w and -1 or 0x000000)
-            setPaletteColor(1, eeprom_data.w and 0x000000 or -1)
+            setPaletteColor(0, eeprom_data.w and 0xffffff or 0)
+            setPaletteColor(1, eeprom_data.w and 0 or 0xffffff)
             setPaletteColor(2, 0x888888)
             gIsPal = 1
         end
@@ -519,9 +519,9 @@ if gpu and rebootmode ~= bm_fast and not eeprom_data.f then
                 elseif selected1 == 3 then
                     eeprom_data.j = not eeprom_data.j
                 elseif selected1 == 4 then
-                    eeprom_data.f = not eeprom_data.f
-                elseif selected1 == 5 then
                     eeprom_data.w = not eeprom_data.w
+                elseif selected1 == 5 then
+                    eeprom_data.f = not eeprom_data.f
                 elseif selected1 == 6 then
                     saveWithSplash()
                     break
