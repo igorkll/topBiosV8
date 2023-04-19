@@ -415,7 +415,6 @@ if eeprom_data.k then
     _computer.beep"."
 end
 
-::retry::
 if gpu and rebootmode ~= bm_fast and not eeprom_data.f then
     splash"press ALT to open the bios menu"
 
@@ -530,31 +529,29 @@ elseif eeprom_data.u ~= str_empty and internet then
     tryUrlBoot(eeprom_data.u)
 elseif eeprom_data.a and eeprom_data.p and proxy(eeprom_data.a) then
     tryBoot(eeprom_data.a, eeprom_data.p)
-else
-    if eeprom_data.e then
-        splash"boot auto-assignments"
-
-        empty = 1
-        for fs in list"file" do
-            if invoke(fs, "exists", str_initlua) then
-                eeprom_data.a = fs
-                eeprom_data.p = str_initlua
-                empty = F
-                save()
-                break
-            end
-        end
-        if eeprom_data.u == str_empty and internet and empty and eeprom_data.j then
-            eeprom_data.u = str_openOSonline --openOS online
-            empty = F
-            save()
-        end
-    else
-        splash"no suitable boot option"
-    end
-    pullSignal(1)
-
-    goto retryBoot
 end
 
-goto retry
+if eeprom_data.e then
+    splash"boot auto-assignments"
+
+    empty = 1
+    for fs in list"file" do
+        if invoke(fs, "exists", str_initlua) then
+            eeprom_data.a = fs
+            eeprom_data.p = str_initlua
+            empty = F
+            save()
+            break
+        end
+    end
+    if eeprom_data.u == str_empty and internet and empty and eeprom_data.j then
+        eeprom_data.u = str_openOSonline --openOS online
+        empty = F
+        save()
+    end
+else
+    splash"no suitable boot option"
+end
+pullSignal(1)
+
+goto retryBoot
