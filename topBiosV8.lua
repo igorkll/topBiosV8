@@ -411,7 +411,6 @@ end
 
 --------------------- main
 
-setColor(0)
 if eeprom_data.k then
     _computer.beep"."
 end
@@ -424,7 +423,7 @@ if gpu and rebootmode ~= bm_fast and not eeprom_data.f then
     if rebootmode == bm_bios then
         selected1 = 1
     else
-        for i = 0, 5 do
+        for i = 0, 7 do
             pullSignal(.1)
             if event == "key_down" and code == 56 then
                 selected1 = 1
@@ -522,6 +521,7 @@ if gpu and rebootmode ~= bm_fast and not eeprom_data.f then
     end
 end
 
+::retryBoot::
 if eeprom_data.a and eeprom_data.p and proxy(eeprom_data.a) and eeprom_data.b then
     tryBoot(eeprom_data.a, eeprom_data.p)
 elseif eeprom_data.u ~= str_empty and internet and eeprom_data.b then
@@ -546,12 +546,15 @@ else
         end
         if eeprom_data.u == str_empty and internet and empty and eeprom_data.j then
             eeprom_data.u = str_openOSonline --openOS online
+            empty = F
             save()
         end
     else
         splash"no suitable boot option"
     end
-    pullSignal(0.5)
+    pullSignal(1)
+
+    goto retryBoot
 end
 
 goto retry
