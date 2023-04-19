@@ -535,13 +535,15 @@ if gpu and rebootmode ~= bm_fast and not eeprom_data.f then
 end
 
 ::retryBoot::
-if eeprom_data.u ~= str_empty and internet and eeprom_data.b then
+str = eeprom_data.a and eeprom_data.p and proxy(eeprom_data.a)
+err = eeprom_data.u ~= str_empty and internet
+if err and eeprom_data.b then
     tryUrlBoot(eeprom_data.u)
-elseif eeprom_data.a and eeprom_data.p and proxy(eeprom_data.a) and eeprom_data.b then
+elseif str and eeprom_data.b then
     tryBoot(eeprom_data.a, eeprom_data.p)
-elseif eeprom_data.a and eeprom_data.p and proxy(eeprom_data.a) then
+elseif str then
     tryBoot(eeprom_data.a, eeprom_data.p)
-elseif eeprom_data.u ~= str_empty and internet then
+elseif err then
     tryUrlBoot(eeprom_data.u)
 end
 
