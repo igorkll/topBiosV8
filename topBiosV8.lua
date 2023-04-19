@@ -509,7 +509,7 @@ if gpu and rebootmode ~= bm_fast and not eeprom_data.f then
                     {"beep on start: " .. tostring(eeprom_data.k),
                     "allow boot auto-assignments: " .. tostring(eeprom_data.e),
                     "allow set urlboot by auto-assignments: " .. tostring(eeprom_data.j),
-                    "theme: " .. eeprom_data.w and "black" or "white",
+                    "theme: " .. (eeprom_data.w and "black" or "white"),
                     "fastboot: " .. tostring(eeprom_data.f),
                     str_exit}, selected1)
                 if selected1 == 1 then
@@ -520,7 +520,7 @@ if gpu and rebootmode ~= bm_fast and not eeprom_data.f then
                     eeprom_data.j = not eeprom_data.j
                 elseif selected1 == 4 then
                     eeprom_data.f = not eeprom_data.f
-                elseif selected1 == 4 then
+                elseif selected1 == 5 then
                     eeprom_data.w = not eeprom_data.w
                 elseif selected1 == 6 then
                     saveWithSplash()
@@ -535,13 +535,13 @@ if gpu and rebootmode ~= bm_fast and not eeprom_data.f then
 end
 
 ::retryBoot::
-if eeprom_data.a and eeprom_data.p and proxy(eeprom_data.a) and eeprom_data.b then
+if eeprom_data.u ~= str_empty and internet and eeprom_data.b then
     tryUrlBoot(eeprom_data.u)
-elseif eeprom_data.u ~= str_empty and internet and eeprom_data.b then
-    tryBoot(eeprom_data.a, eeprom_data.p)
-elseif eeprom_data.u ~= str_empty and internet then
+elseif eeprom_data.a and eeprom_data.p and proxy(eeprom_data.a) and eeprom_data.b then
     tryBoot(eeprom_data.a, eeprom_data.p)
 elseif eeprom_data.a and eeprom_data.p and proxy(eeprom_data.a) then
+    tryBoot(eeprom_data.a, eeprom_data.p)
+elseif eeprom_data.u ~= str_empty and internet then
     tryUrlBoot(eeprom_data.u)
 end
 
