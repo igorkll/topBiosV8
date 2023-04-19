@@ -90,8 +90,8 @@
                 может принять nil
 ]]
 
-local _checkArg, str_string, str_nil, str_initlua, str_kernel, str_lua, str_seturlboot, str_lifeurlboot, str_sbp, str_sbf, str_empty, str_lifeboot, str_openOSonline, str_updateUrl, str_defaultSettings, str_settings, str_biosname, str_exit, proxy, list, invoke, TRUE =
-       checkArg, "string", "nil", "init.lua", "boot/kernel/", "Lua Shell", "Set Url Boot", "Life Url Boot", "Select Boot Priority", "Select Boot Fs", "", "Life Boot", "https://raw.githubusercontent.com/igorkll/topBiosV8/main/openOSonline.lua", "https://raw.githubusercontent.com/igorkll/topBiosV8/main/topBiosV8.bin", "{u='',e=true,k=true,j=true,f=false}", "Settings", "Top Bios V8", "exit", component.proxy, component.list, component.invoke, true
+local _checkArg, str_string, str_nil, str_initlua, str_kernel, str_lua, str_seturlboot, str_lifeurlboot, str_sbp, str_sbf, str_empty, str_lifeboot, str_openOSonline, str_updateUrl, str_defaultSettings, str_settings, str_biosname, str_exit, str_nointernetcard, proxy, list, invoke, TRUE =
+       checkArg, "string", "nil", "init.lua", "boot/kernel/", "Lua Shell", "Set Url Boot", "Life Url Boot", "Select Boot Priority", "Select Boot Fs", "", "Life Boot", "https://raw.githubusercontent.com/igorkll/topBiosV8/main/openOSonline.lua", "https://raw.githubusercontent.com/igorkll/topBiosV8/main/topBiosV8.bin", "{u='',e=true,k=true,j=true,f=false}", "Settings", "Top Bios V8", "exit", "no internet-card, urlboot is not available", component.proxy, component.list, component.invoke, true
 
 local gpu, eeprom, internet, _computer, _pcall, resX, resY, --не забуть запитую
 screen, eeprom_data, selected1, empty, event, code, str, char, err,
@@ -122,7 +122,7 @@ local clear, drawStr, pullSignal, save, beforeBoot, setColor, rebootmode, bm_fas
     gpu.fill(1, 1, resX, resY, " ")
 end, function(str, posY, invert)
     if invert then reverseColor() end
-    gpu.set(math.floor(resX / 2 - #str / 2 + .5), posY, str)
+    gpu.set(math.floor((resX / 2 - #str / 2) + .5), posY, str)
     if invert then reverseColor() end
 end, function(wait)
     event, empty, char, code = _computer.pullSignal(wait)
@@ -383,16 +383,19 @@ function bootmenu() --is local
 end
 
 function tryBoot(laddr, lpath) --is local
-    splash"try boot"
+    if not internet then splash(str_nointernetcard) return end
+    err = " (" .. laddr:sub(1, 4) .. ", " .. lpath .. ") "
+    splash("booting" .. err)
+    
 
     str = boot(laddr, lpath)
     if str then
-        splash("error-boot (" .. laddr:sub(1, 4) .. ", " .. lpath .. "): " .. str, 1)
+        splash("boot-error" .. err .. str, 1)
     end
 end
 
 function tryUrlBoot(url) --is local
-    splash"try urlboot"
+    splash("url booting (" .. url .. ")")
 
     str = urlboot(url)
     if str then
@@ -401,7 +404,7 @@ function tryUrlBoot(url) --is local
 end
 
 function saveWithSplash() --is local
-    splash"Saving"
+    splash"saving"
     save()
 end
 
@@ -445,6 +448,7 @@ if gpu and rebootmode ~= bm_fast and not eeprom_data.f then
             selected1, eeprom_data.a, eeprom_data.p = 3, old_laddr, old_lpath
             if not tmp1 then tryBoot(str, err) end
         elseif selected1 == 4 then
+            if not internet then splash(str_nointernetcard) end --но вы всеравно сможете изменить настройки
             selected1 = 1
             while 1 do
                 selected1 = menu("Internet Utiles", {str_seturlboot, str_lifeurlboot, "set openOSonline at urlboot", "run openOSonline", "run saved url", str_exit}, selected1)
@@ -468,7 +472,7 @@ if gpu and rebootmode ~= bm_fast and not eeprom_data.f then
         elseif selected1 == 5 then
             shutdown()
         elseif selected1 == 6 then
-            splash"Resetting"
+            splash"resetting"
             eeprom.setData(str_defaultSettings)
             shutdown(1)
         elseif selected1 == 7 then
