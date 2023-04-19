@@ -56,7 +56,7 @@
 
         getBootGpu - обязателен если bios поддерживает вывод на экран
             если же вывод на экран не поддерживаеться то данного метода быть не должно
-            должен вернуть строчку с адресом видеокарты которая использовалась для вывода изображения при запуске bios
+            должен вернуть строчку с адресом видеокарты которая использовалась для вывода изображения при работе bios
             если таковой нет(например компьютер не имеет видеокарты) то должен вернуть nil
             работа метода не должна поменяться даже если gpu была изьята или заменена
             (всеравно метод должен возврашяться адрес загрузочной gpu)
@@ -93,12 +93,12 @@
 local _checkArg, str_string, str_nil, str_initlua, str_kernel, str_lua, str_seturlboot, str_lifeurlboot, str_sbp, str_sbf, str_empty, str_lifeboot, str_openOSonline, str_updateUrl, str_defaultSettings, str_settings, str_biosname, str_exit, str_nointernetcard, proxy, list, invoke, TRUE =
        checkArg, "string", "nil", "init.lua", "boot/kernel/", "Lua Shell", "Set Url Boot", "Life Url Boot", "Select Boot Priority", "Select Boot Fs", "", "Life Boot", "https://raw.githubusercontent.com/igorkll/topBiosV8/main/openOSonline.lua", "https://raw.githubusercontent.com/igorkll/topBiosV8/main/topBiosV8.bin", "{u='',e=true,k=true,j=true,f=false}", "Settings", "Top Bios V8", "exit", "no internet-card, urlboot is not available", component.proxy, component.list, component.invoke, true
 
-local eeprom, _computer, _pcall, resX, resY, --не забуть запитую
+local eeprom, boot_eeprom, _computer, _pcall, resX, resY, --не забуть запитую
 screen, eeprom_data, selected1, empty, event, code, str, char, err,
 tryUrlBoot, saveWithSplash, reverseColor, setBackground, setForeground, hpath, haddr, old_laddr, old_lpath,
-tryBoot, gIsPal, col, isPal, tmp1, setPaletteColor, internet, gpu, boot_gpu, boot_eeprom
+tryBoot, gIsPal, col, isPal, tmp1, setPaletteColor, internet, gpu, boot_gpu
 =
-proxy(list"eep"() or str_empty), computer, pcall, 50, 16
+proxy(list"eep"()), list"eep"(), computer, pcall, 50, 16
 
 ::retry2::
 if not pcall(function()
@@ -154,15 +154,15 @@ end, function(num)
     end
 end, function ()
     gpu = proxy(list"gp"() or "")
-    if gpu then
-        screen, setBackground, setForeground, setPaletteColor =
-        list"scr"(), gpu.setBackground, gpu.setForeground, gpu.setPaletteColor
+    screen = list"scr"()
+    if gpu and screen then
+        setBackground, setForeground, setPaletteColor =
+        gpu.setBackground, gpu.setForeground, gpu.setPaletteColor
         
         gpu.bind(screen)
-    
         gpu.setDepth(1) --reset pallete
         gpu.setDepth(math.min(gpu.maxDepth(), 4))
-        
+
         if gpu.getDepth() > 3 then
             --4 depth
             setPaletteColor(0, eeprom_data.w and 0xffffff or 0x000000)
@@ -175,6 +175,8 @@ end, function ()
     
         invoke(screen, "turnOn")
     end
+
+    boot_gpu = gpu and gpu.address
 end,
 eeprom.getLabel(), "__fast", "__bios", _computer.shutdown
 
