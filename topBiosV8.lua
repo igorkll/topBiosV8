@@ -96,9 +96,37 @@ local _checkArg, str_string, str_nil, str_initlua, str_kernel, str_lua, str_setu
 local eeprom, boot_eeprom, _computer, _pcall, resX, resY, --не забуть запитую
 screen, eeprom_data, selected1, empty, event, code, str, char, err,
 tryUrlBoot, saveWithSplash, reverseColor, setBackground, setForeground, hpath, haddr, old_laddr, old_lpath,
-tryBoot, gIsPal, col, isPal, tmp1, setPaletteColor, internet, gpu, boot_gpu
+tryBoot, gIsPal, col, isPal, tmp1, setPaletteColor, internet, gpu, boot_gpu, refresh
 =
 proxy(list"eep"()), list"eep"(), computer, pcall, 50, 16
+
+function refresh()
+    internet = proxy(list"int"() or str_empty)
+    gpu = proxy(list"gp"() or str_empty)
+    screen = list"scr"()
+    if gpu and screen then
+        setBackground, setForeground, setPaletteColor =
+        gpu.setBackground, gpu.setForeground, gpu.setPaletteColor
+        
+        gpu.bind(screen)
+        gpu.setDepth(1) --reset pallete
+        gpu.setDepth(math.min(gpu.maxDepth(), 4))
+
+        if gpu.getDepth() > 3 then
+            --4 depth
+            setPaletteColor(0, eeprom_data.w and -1 or 0x000000)
+            setPaletteColor(1, eeprom_data.w and 0x000000 or -1)
+            setPaletteColor(2, 0x888888)
+            gIsPal = 1
+        end
+    
+        gpu.setResolution(resX, resY)
+    
+        invoke(screen, "turnOn")
+    end
+
+    boot_gpu = gpu and gpu.address
+end
 
 ::retry2::
 if not pcall(function()
@@ -115,7 +143,7 @@ function reverseColor()
     gpu.setForeground(col, isPal)
 end
 
-local clear, drawStr, pullSignal, save, beforeBoot, setColor, refresh, rebootmode, bm_fast, bm_bios, shutdown = function()
+local clear, drawStr, pullSignal, save, beforeBoot, setColor, rebootmode, bm_fast, bm_bios, shutdown = function()
     gpu.fill(1, 1, resX, resY, " ")
 end, function(str, posY, invert)
     if invert then reverseColor() end
@@ -123,6 +151,9 @@ end, function(str, posY, invert)
     if invert then reverseColor() end
 end, function(wait)
     event, empty, char, code = _computer.pullSignal(wait)
+    if event == "component_added" or event == "component_removed" then
+        refresh()
+    end
 end, function ()
     str = "{"
     for k, v in pairs(eeprom_data) do
@@ -149,34 +180,9 @@ end, function(num)
             setForeground(2, TRUE)
         end
     else
-        setBackground(-1)
-        setForeground(0)
+        setBackground(eeprom_data.w and 0 or -1)
+        setForeground(eeprom_data.w and -1 or 0)
     end
-end, function ()
-    gpu = proxy(list"gp"() or "")
-    screen = list"scr"()
-    if gpu and screen then
-        setBackground, setForeground, setPaletteColor =
-        gpu.setBackground, gpu.setForeground, gpu.setPaletteColor
-        
-        gpu.bind(screen)
-        gpu.setDepth(1) --reset pallete
-        gpu.setDepth(math.min(gpu.maxDepth(), 4))
-
-        if gpu.getDepth() > 3 then
-            --4 depth
-            setPaletteColor(0, eeprom_data.w and 0xffffff or 0x000000)
-            setPaletteColor(1, eeprom_data.w and 0x000000 or 0xffffff)
-            setPaletteColor(2, 0x888888)
-            gIsPal = 1
-        end
-    
-        gpu.setResolution(resX, resY)
-    
-        invoke(screen, "turnOn")
-    end
-
-    boot_gpu = gpu and gpu.address
 end,
 eeprom.getLabel(), "__fast", "__bios", _computer.shutdown
 
@@ -503,6 +509,7 @@ if gpu and rebootmode ~= bm_fast and not eeprom_data.f then
                     {"beep on start: " .. tostring(eeprom_data.k),
                     "allow boot auto-assignments: " .. tostring(eeprom_data.e),
                     "allow set urlboot by auto-assignments: " .. tostring(eeprom_data.j),
+                    "theme: " .. eeprom_data.w and "black" or "white",
                     "fastboot: " .. tostring(eeprom_data.f),
                     str_exit}, selected1)
                 if selected1 == 1 then
@@ -513,7 +520,9 @@ if gpu and rebootmode ~= bm_fast and not eeprom_data.f then
                     eeprom_data.j = not eeprom_data.j
                 elseif selected1 == 4 then
                     eeprom_data.f = not eeprom_data.f
-                elseif selected1 == 5 then
+                elseif selected1 == 4 then
+                    eeprom_data.w = not eeprom_data.w
+                elseif selected1 == 6 then
                     saveWithSplash()
                     break
                 end
